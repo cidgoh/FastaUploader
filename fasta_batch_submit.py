@@ -10,10 +10,14 @@ Processing is two step:
 processing of them is reliable after that point, so no further error reporting
 required after parsing.
  - Importantly, if rerunning, this step will be skipped unless -f --force 
- parameter is run.  But at moment input files are still required.
+ parameter is run. Currently input files are still required in this case.
 
 2) IF API option is included, submit each batch to API, wait for it to finish
-or error out (capture error report) and proceed to next batch.
+or error out (capture error report) and proceed to next batch. Some types of
+error trigger sudden death, i.e. sys.exit() because they would apply to any
+subsequent API batch calls.  For example missing tabular data column names
+will trigger an exit. Once resolved, rerun with -f to force regeneration of
+output files.
 
 Authors: Damion Dooley, Nithu Sara John
 Centre for Infectious Disease Epidemiology and One Health
@@ -34,6 +38,7 @@ import pandas as pd
 import sys
 import requests
 import os, glob
+from datetime import datetime
 
 parser = optparse.OptionParser()
 
@@ -49,12 +54,12 @@ parser.add_option('-o', '--output', dest="output_file",
    help="provide an output file name/path", default='output_');
 parser.add_option('-k', '--key', dest="key_field",
    help="provide the metadata field name to match to fasta record identifier");
-parser.add_option('-a', '--api', dest="api", default='virusseq',
+parser.add_option('-a', '--api', dest="api", default='VirusSeq_Portal',
    help="provide the target API to send data too.  A batch submission job will be initiated for it.");
 parser.add_option('-u', '--user', dest="api_token",
-   help="A user token is required for API access");
+   help="an API user token is required for API access");
 parser.add_option('-r', '--reset', dest="reset",
-   help="Regenerate all batch files and clear all logs even if they already exist.");
+   help="regenerate all batch files and begin API resubmission process even if batch files already exist under given output file pattern.");
 
 options, args = parser.parse_args();
 
@@ -80,6 +85,8 @@ if not options.key_field in metadata.columns:
    print('The key field column you provided [' + options.key_field + '] was not found in the contextual data file\'s list of columns:')
    print(metadata.columns);
    sys.exit(1);
+
+print ("Fasta batch file process initiated on: " + datetime.now().isoformat());
 
 # If force, clear out all existing batch files and redo
 if options.reset:
@@ -116,11 +123,13 @@ else:
          if options.csv_file:
             metabatch.to_csv(options.output_file + str(count) + '.csv', index=False); 
          else:
+            # Or to tabular?  Issue of quoted strings?
             metabatch.to_csv(options.output_file + str(count) + '.tsv', sep="\t", index=False);
 
          with open(options.output_file + str(count) + '.fasta', 'w') as output_handle:
             SeqIO.write(sequences, output_handle, "fasta");
 
+   # Refresh batches file name list
    batches = glob.glob("./" + options.output_file + '*.fasta');
 
 """ Currently only virusseq () API is an option.
@@ -129,17 +138,8 @@ API Information: https://github.com/cancogen-virus-seq/docs/wiki/How-to-Submit-D
 Log in here to get API Key, good for 24 hours:
 https://portal.dev.cancogen.cancercollaboratory.org/login
 
-curl --location --request POST 'https://muse.virusseq-dataportal.ca/submissions' \
---header 'Authorization: Bearer eyJhbGciOiJSUzI....OZbQ' \
---form 'files=@"test.fasta"' \
---form 'files=@"test.tsv"'
-
-TESTING ON output_0.fasta and output_0.csv, knowing that it should be .TSV.
-
-Authorized for MUSE-UHTC-ON
 NOTE: Study_id field if not set to account project like "MUSE-UHTC-ON" will
 trigger validation error "UNAUTHORIZED_FOR_STUDY_UPLOAD".
-
 """
 
 if options.api:
@@ -148,31 +148,35 @@ if options.api:
       sys.exit("An API user token is required for use with the [" + options.api + "] API.");
 
    ################################### VirusSeq API ##########################
-   if options.api == 'virusseq':
+   # See: https://github.com/cancogen-virus-seq/docs/wiki/How-to-Submit-Data-(API)
+   if options.api == 'VirusSeq_Portal':
       url = "https://muse.virusseq-dataportal.ca/submissions";
 
-      # https://www.kite.com/python/answers/how-to-add-custom-headers-to-a-post-request-in-python
       custom_header = {'Authorization': 'Bearer ' + options.api_token}
 
-      #TESTING
+      # TESTING: create an empty or junky .fasta and accompanying .tsv file
       batches = ['test.fasta'];
 
       for filename in batches:
-
+         filename_tsv = filename.replace('.fasta','.tsv');
          upload_files = [
             ('files', open(filename, 'rb')), 
-            ('files', open(filename.replace('.fasta','.tsv'), 'rb'))
+            ('files', open(filename_tsv, 'rb'))
          ];
          print('Processing batch: ' + filename);
          request = requests.post(url, files = upload_files, headers = custom_header);
 
          if request.status_code == 200:
-            print('Processed?');
             result = request.json();
-            print(result);
-            continue            
-
-         err = request.text;
+            if ('submissionId' in result):
+               submission_id = request['submissionId'];
+               print('Batch was submitted! submissionId=' + submission_id);
+               os.rename(filename, filename + '.' + submission_id)
+               os.rename(filename, filename_tsv + '.' + submission_id)
+               continue;    
+            else:
+               print(result);
+               sys.exit("Resolve reported error, then rerun command!");
 
          # "Unauthorized client error status response" code occurs when key is not valid.
          # This halts processing of all remaining batches.
@@ -198,7 +202,10 @@ if options.api:
                   print ("Missing Headers:", errorInfo['missingHeaders']);
                   sys.exit("Check to make sure the .tsv file headers are current.");
 
-
+               """
+               Example error:
+               "errorInfo":{"invalidFields":[{"fieldName":"specimen collector sample ID","value":"","reason":"NOT_ALLOWED_TO_BE_EMPTY","index":1},{"fieldName":"fasta header name","value":"","reason":"NOT_ALLOWED_TO_BE_EMPTY","index":1},{"fieldName":"study_id","value":" 23434","reason":"UNAUTHORIZED_FOR_STUDY_UPLOAD","index":1}]}}
+               """
                if message == 'Found records with invalid fields':
                   for record in errorInfo['invalidFields']:
                      print ("row " + str(record['index']), '"' + record['fieldName'] + '"', 
@@ -207,14 +214,10 @@ if options.api:
                      );
                   continue;
 
-               """
-               "errorInfo":{"invalidFields":[{"fieldName":"specimen collector sample ID","value":"","reason":"NOT_ALLOWED_TO_BE_EMPTY","index":1},{"fieldName":"fasta header name","value":"","reason":"NOT_ALLOWED_TO_BE_EMPTY","index":1},{"fieldName":"study_id","value":" 23434","reason":"UNAUTHORIZED_FOR_STUDY_UPLOAD","index":1}]}}
-               """
-
-            # not sure where this is positioned.
+            # not sure where this should be positioned.
             # {"status":"FORBIDDEN","message":"Denied","errorInfo":{}}
             if (status == "FORBIDDEN"):
-               sys.exit("Your account has not been authorized for use yet for file upload.");
+               sys.exit("Your account associated with the API key has not been authorized, so this service is not available to you yet.");
 
          # Internal Server Error (code generated etc.)
          if request.status_code == 500:
@@ -225,8 +228,4 @@ if options.api:
             continue;
 
          print('Error: Unable to complete batch because of status code ' + str(request.status_code) + '\n' + request.text);
-
-
-         # except Exception as e: 
-         #   print ("No content provided in response from\n" + url + "\n Is server down?");
-         #   print(e);
+         continue;
