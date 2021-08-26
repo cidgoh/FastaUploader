@@ -35,23 +35,23 @@ Run the command in a folder with the appropriate input files, and output files c
 ### Options:
 
     -h, --help
-      show this help message and exit
+      show this help message and exit.
     -f FASTA_FILE, --fasta=FASTA_FILE
-      provide a fasta file name
+      provide a fasta file name.
     -c CSV_FILE, --csv=CSV_FILE
-      provide a COMMA delimited sample contextual data file name
+      provide a COMMA delimited sample contextual data file name.
     -t TSV_FILE, --tsv=TSV_FILE
-      provide a TAB delimited sample contextual data file name
+      provide a TAB delimited sample contextual data file name.
     -b BATCH, --batch=BATCH
-      provide number of fasta records to include in each batch
+      provide number of fasta records to include in each batch. Default is 1000.
     -o OUTPUT_FILE, --output=OUTPUT_FILE
-      provide an output file name/path
+      provide an output file name/path.
     -k KEY_FIELD, --key=KEY_FIELD
-      provide the metadata field name to match to fasta record identifier
+      provide the metadata field name to match to fasta record identifier.
     -a API, --api=API     
-      provide the target API to send data too.  A batch submission job will be initiated for it. Default is "VirusSeq_Portal"
+      provide the target API to send data too.  A batch submission job will be initiated for it. Default is "VirusSeq_Portal".
     -u API_TOKEN, --user=API_TOKEN
-      an API user token is required for API access
+      an API user token is required for API access.
     -r, --reset
       Regenerate all batch files and begin API resubmission process even if batch files already exist under given output file pattern.
                         
