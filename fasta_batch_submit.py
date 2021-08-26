@@ -130,7 +130,7 @@ Log in here to get API Key, good for 24 hours:
 https://portal.dev.cancogen.cancercollaboratory.org/login
 
 curl --location --request POST 'https://muse.virusseq-dataportal.ca/submissions' \
---header 'Authorization: Bearer eyJhbGciOiJSUzI1NiJ9.eyJpYXQiOjE2Mjk5MzE5ODQsImV4cCI6MTYyOTk0Mjc4NCwic3ViIjoiYTAwNDMwNjMtODJlNy00NDE2LWJjOGMtNGYyMjFjOTFjNGJiIiwiaXNzIjoiZWdvIiwianRpIjoiYzZmMTc3M2EtYjg2Yy00YWIzLTljNTYtZTIyYTRlYzcyZjdlIiwiY29udGV4dCI6eyJzY29wZSI6WyJNVVNFLVVIVEMtT04uUkVBRCIsIk1VU0UtVUhUQy1PTi5XUklURSJdLCJ1c2VyIjp7ImVtYWlsIjoiZGFtaW9uX2Rvb2xleUBzZnUuY2EiLCJzdGF0dXMiOiJBUFBST1ZFRCIsImZpcnN0TmFtZSI6IkRhbWlvbiIsImxhc3ROYW1lIjoiRG9vbGV5IiwiY3JlYXRlZEF0IjoxNjI5OTEwMDQ3Mjc0LCJsYXN0TG9naW4iOjE2Mjk5MzE5ODQ0NjQsInByZWZlcnJlZExhbmd1YWdlIjpudWxsLCJwcm92aWRlclR5cGUiOiJLRVlDTE9BSyIsInByb3ZpZGVyU3ViamVjdElkIjoiNDhhMTExNDMtOTAzNS00NTdjLTllYzgtNzA3MzZkZDNmYjU0IiwidHlwZSI6IlVTRVIiLCJncm91cHMiOlsiNGZkMTc2ZjAtMmE1NS00M2Q3LWJkMzItMWZhNmQwZWI4MTA5Il19fSwiYXVkIjpbXX0.kBqctB7Y3SibLihrzXA_A714HhZq2_pr_pYZ5EnF_QQQRy1_RfJrvxUylNrWcGZi-AWiqqW0WiFT9x8ypA481fZkP6QLikZbNDMrEcmXhtGvU0selqcFJqil-bH7GUTal5lLZdxAB6Ly5R05YcQnhscYrcZNs9teP86CIHbzpZ2pKhq27lKa5zDlBojdWcwnad6ANjHywKiW9vtDqPQxErN0A4TImxuP5PLk--aJyDvg22jq179uY4jUIrpg0Y0Y_jZJTiTlVbZcAUGE4moa3n7SqdeDw596mdcdEpmpJnRnW8A-AsISr2ghOWEXuMp6nPkyv5NcITBCbQgsDVOZbQ' \
+--header 'Authorization: Bearer eyJhbGciOiJSUzI....OZbQ' \
 --form 'files=@"test.fasta"' \
 --form 'files=@"test.tsv"'
 
@@ -191,7 +191,7 @@ if options.api:
             print("Bad Request status 400 response.");
 
             if (status == "BAD_REQUEST"):
-               
+
                if message == 'Headers are incorrect!':
                   print (message);
                   print ("Unknown Headers:", errorInfo['unknownHeaders']);
