@@ -28,9 +28,11 @@ Requires Biopython and Requests modules
 - "pip install requests"
 
 ## Usage
-python fasta_batch_submit.py [options]
+Run the command in a folder with the appropriate input files, and output files can be generated there too.  Rerun it in the same folder to incrementally fix any submission errors and then restart submission.
 
-Options:
+**python fasta_batch_submit.py [options]**
+
+### Options:
 
     -h, --help
       show this help message and exit
