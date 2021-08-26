@@ -1,7 +1,7 @@
 # fasta-harmonizer
 A tool for batch processing large fasta files and accompanying metadata table to repositories via API
 
-The python **fasta_batch_submit.py** script breaks large fasta files (e.g. 500mb) and related (one-to-one) tabular contextual data into smaller batches of 1000 or some specified # of records which can then be uploaded to a given sequence repository if an API endpoint is selected.  Currently API interface is developed for VirusSeq (https://virusseq-dataportal.ca/). 
+The python **fasta_batch_submit.py** script breaks large fasta files (e.g. 500mb) and related (one-to-one) tabular contextual data into smaller batches of 1000 or some specified # of records which can then be uploaded to a given sequence repository if an API endpoint is selected.  Currently API interface is developed for [VirusSeq](https://virusseq-dataportal.ca/). 
 
 This tool is developed by the SFU Centre for Infectious Disease Epidemiology and One Health in conjunction with VirusSeq and it works well with [DataHarmonizer](https://github.com/Public-Health-Bioinformatics/DataHarmonizer)!
 
