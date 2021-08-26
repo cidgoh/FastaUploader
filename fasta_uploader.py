@@ -1,4 +1,6 @@
-""" fasta_batch_submit.py
+""" fasta_uploader.py
+
+See latest at: https://github.com/Public-Health-Bioinformatics/FastaUploader/
 
 Given a fasta file and a sample metadata file with a column that matches to
 fasta file record identifiers, break both into respective sets of smaller
@@ -28,7 +30,7 @@ Requires Biopython and Requests modules
 - "pip install requests"
 
 Usage:
-python fasta_batch_submit.py -c "20210713_AB_final set 1.csv" -f "consensus_renamed_final.fasta" -k "specimen collector sample ID"
+python fasta_uploader.py -c "20210713_AB_final set 1.csv" -f "consensus_renamed_final.fasta" -k "specimen collector sample ID"
 """
 
 from Bio import SeqIO
@@ -51,7 +53,7 @@ parser.add_option('-t', '--tsv', dest="tsv_file",
 parser.add_option('-b', '--batch', dest="batch",
    help="provide number of fasta records to include in each batch", default=1000);
 parser.add_option('-o', '--output', dest="output_file",
-   help="provide an output file name/path", default='output_');
+   help="provide an output file name/path", default='output');
 parser.add_option('-k', '--key', dest="key_field",
    help="provide the metadata field name to match to fasta record identifier");
 parser.add_option('-a', '--api', dest="api", default='VirusSeq_Portal',
@@ -91,10 +93,10 @@ print ("Fasta batch file process initiated on: " + datetime.now().isoformat());
 # If force, clear out all existing batch files and redo
 if options.reset:
    # Add syntax check / security on options.output_file references?
-   for filename in glob.glob("./" + options.output_file + '*'):
+   for filename in glob.glob("./" + options.output_file + '.*'):
       os.remove(filename);
 
-batches = glob.glob("./" + options.output_file + '*.fasta');
+batches = glob.glob("./" + options.output_file + '.*.id.fasta');
 
 # Doesn't regenerate fasta or tsv batches if any one matching pattern exists.
 if len(batches) > 0:
@@ -118,19 +120,19 @@ else:
          id_index = [record.id for record in sequences];
          metabatch = metadata.loc[metadata[options.key_field].isin(id_index)];
 
-         print('Files for ' + options.output_file + str(count))
+         print('Files for ' + options.output_file + '.'+ str(count))
          # https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.to_csv.html
          if options.csv_file:
-            metabatch.to_csv(options.output_file + str(count) + '.csv', index=False); 
+            metabatch.to_csv(options.output_file + '.'+ str(count) + '.id.csv', index=False); 
          else:
             # Or to tabular?  Issue of quoted strings?
-            metabatch.to_csv(options.output_file + str(count) + '.tsv', sep="\t", index=False);
+            metabatch.to_csv(options.output_file + '.'+ str(count) + '.id.tsv', sep="\t", index=False);
 
-         with open(options.output_file + str(count) + '.fasta', 'w') as output_handle:
+         with open(options.output_file + '.'+ str(count) + '.id.fasta', 'w') as output_handle:
             SeqIO.write(sequences, output_handle, "fasta");
 
    # Refresh batches file name list
-   batches = glob.glob("./" + options.output_file + '*.fasta');
+   batches = glob.glob("./" + options.output_file + '.*.id.fasta');
 
 """ Currently only virusseq () API is an option.
 API Information: https://github.com/cancogen-virus-seq/docs/wiki/How-to-Submit-Data-(API)
@@ -138,7 +140,7 @@ API Information: https://github.com/cancogen-virus-seq/docs/wiki/How-to-Submit-D
 Log in here to get API Key, good for 24 hours:
 https://portal.dev.cancogen.cancercollaboratory.org/login
 
-NOTE: Study_id field if not set to account project like "MUSE-UHTC-ON" will
+NOTE: Study_id field if not set to account project like "UHTC-ON" will
 trigger validation error "UNAUTHORIZED_FOR_STUDY_UPLOAD".
 """
 
@@ -150,29 +152,34 @@ if options.api:
    ################################### VirusSeq API ##########################
    # See: https://github.com/cancogen-virus-seq/docs/wiki/How-to-Submit-Data-(API)
    if options.api == 'VirusSeq_Portal':
-      url = "https://muse.virusseq-dataportal.ca/submissions";
+      # url = "https://muse.virusseq-dataportal.ca/submissions";  # LIVE ENVIRONMENT
+      url = "https://muse.dev.cancogen.cancercollaboratory.org/submissions";  # TEST ENVIRONMENT
 
       custom_header = {'Authorization': 'Bearer ' + options.api_token}
 
       # TESTING: create an empty or junky .fasta and accompanying .tsv file
-      batches = ['test.fasta'];
+      batches = ['test.0.id.fasta'];
 
       for filename in batches:
-         filename_tsv = filename.replace('.fasta','.tsv');
+         filename_tsv = filename.replace('.id.fasta','.id.tsv');
          upload_files = [
             ('files', open(filename, 'rb')), 
             ('files', open(filename_tsv, 'rb'))
          ];
          print('Processing batch: ' + filename);
-         request = requests.post(url, files = upload_files, headers = custom_header);
+         try:
+            request = requests.post(url, files = upload_files, headers = custom_header);
+         except Exception as err:
+            sys.exit("API Server problem (check API URL?): " + repr(err));
 
-         if request.status_code == 200:
+         if request.status_code == 400:
             result = request.json();
             if ('submissionId' in result):
                submission_id = request['submissionId'];
                print('Batch was submitted! submissionId=' + submission_id);
+
                os.rename(filename, filename + '.' + submission_id)
-               os.rename(filename, filename_tsv + '.' + submission_id)
+               os.rename(filename_tsv, filename_tsv + '.' + submission_id)
                continue;    
             else:
                print(result);
@@ -184,9 +191,14 @@ if options.api:
             print("Unauthorized client error status 401 response");
             sys.exit("Check to make sure your API key is current.");
 
+         if request.status_code == 404:
+            sys.exit("API service endpoint not recognized. Check API URL:" + url)
+         
          request_error = request.json();
          status = request_error['status'];
          message = request_error['message'];
+
+         print(request_error);
          errorInfo = request_error['errorInfo'];
 
          # "Bad Request" response status indicates something wrong with the input files.
