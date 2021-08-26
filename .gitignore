@@ -127,3 +127,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+*.fasta
+*.csv
+batch_test/README.md
