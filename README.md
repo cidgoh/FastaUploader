@@ -1,7 +1,7 @@
-# fasta-harmonizer
+# Fasta Uploader
 A tool for batch processing large fasta files and accompanying metadata table to repositories via API
 
-The python **fasta_batch_submit.py** script breaks large fasta files (e.g. 500mb) and related (one-to-one) tabular contextual data into smaller batches of 1000 or some specified # of records which can then be uploaded to a given sequence repository if an API endpoint is selected.  Currently there is one option for the API interface: [VirusSeq](https://virusseq-dataportal.ca/). 
+The python **fasta_uploader.py** script breaks large fasta files (e.g. 500mb) and related (one-to-one) tab-delimited sample contextual data into smaller batches of 1000 or some specified # of records which can then be uploaded to a given sequence repository if an API endpoint is selected.  Currently there is one option for the API interface: [VirusSeq](https://virusseq-dataportal.ca/). 
 
 This tool is developed by the SFU Centre for Infectious Disease Epidemiology and One Health in conjunction with VirusSeq and it works well with [DataHarmonizer](https://github.com/Public-Health-Bioinformatics/DataHarmonizer)!
 
@@ -30,7 +30,7 @@ Requires Biopython and Requests modules
 ## Usage
 Run the command in a folder with the appropriate input files, and output files can be generated there too.  Rerun it in the same folder to incrementally fix any submission errors and then restart submission.
 
-**python fasta_batch_submit.py [options]**
+**python fasta_uploader.py [options]**
 
 ### Options:
 
@@ -57,6 +57,6 @@ Run the command in a folder with the appropriate input files, and output files c
                         
 For example:
 
-python fasta_batch_submit.py -c "final set 1.csv" -f "consensus_final.fasta" -k "specimen collector sample ID" -u [enter API key here]
+python fasta_uploader.py -c "final set 1.csv" -f "consensus_final.fasta" -k "specimen collector sample ID" -u [enter API key here]
 
 
