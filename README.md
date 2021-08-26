@@ -53,11 +53,11 @@ Options:
     -k KEY_FIELD, --key=KEY_FIELD
       provide the metadata field name to match to fasta record identifier
     -a API, --api=API     
-      provide the target API to send data too.  A batch submission job will be initiated for it. Default is 
+      provide the target API to send data too.  A batch submission job will be initiated for it. Default is "VirusSeq_Portal"
     -u API_TOKEN, --user=API_TOKEN
-      An API user token is required for API access
-  -r RESET, --reset=RESET
-      Regenerate all batch files and beging API resubmission process even if batch files already exist under given output file pattern.
+      an API user token is required for API access
+    -r, --reset
+      Regenerate all batch files and begin API resubmission process even if batch files already exist under given output file pattern.
                         
 For example:
 
