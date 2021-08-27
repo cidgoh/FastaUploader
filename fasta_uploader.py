@@ -6,7 +6,7 @@ Given a fasta file and a sample metadata file with a column that matches to
 fasta file record identifiers, break both into respective sets of smaller
 batches of records which are submitted to an API for processing.
 
-Processing is two step: 
+Processing is three step: 
 
 1) construct batches of files. Since two files are read and parsed in one go,
 processing of them is reliable after that point, so no further error reporting
@@ -15,11 +15,15 @@ required after parsing.
  parameter is run. Currently input files are still required in this case.
 
 2) IF API option is included, submit each batch to API, wait for it to finish
-or error out (capture error report) and proceed to next batch. Some types of
-error trigger sudden death, i.e. sys.exit() because they would apply to any
-subsequent API batch calls.  For example missing tabular data column names
-will trigger an exit. Once resolved, rerun with -f to force regeneration of
-output files.
+or error out (capture error report) and proceed to next batch. Successfully
+uploaded batches are renamed to include their job ids by the API.
+- Some types of error trigger sudden death, i.e. sys.exit() because they 
+would apply to any subsequent API batch calls.  For example missing tabular
+data column names will trigger an exit. Once resolved, rerun with -f to force
+regeneration of output files.
+
+3) Scan through all uploaded fasta batches and report back via the API any new
+information about errors they may contain.
 
 Authors: Damion Dooley, Nithu Sara John
 Centre for Infectious Disease Epidemiology and One Health
@@ -31,6 +35,10 @@ Requires Biopython and Requests modules
 
 Usage:
 python fasta_uploader.py -c "20210713_AB_final set 1.csv" -f "consensus_renamed_final.fasta" -k "specimen collector sample ID"
+
+FUTURE: Add feature to remerge all split fasta files and tsv files to enable
+them to be error corrected in batch files directly, rather than correcting
+problems in original merged file and rerunning whole upload process?
 """
 
 from Bio import SeqIO
@@ -62,6 +70,10 @@ parser.add_option('-u', '--user', dest="api_token",
    help="an API user token is required for API access");
 parser.add_option('-r', '--reset', dest="reset",
    help="regenerate all batch files and begin API resubmission process even if batch files already exist under given output file pattern.");
+parser.add_option('-d', '--dev', dest="development",
+   help="Test against a development server rather than live one.  Provide an API endpoint URL");
+parser.add_option('-s', '--short', dest="short", 
+   help="Report up to given # of fasta record related errors for each batch submission.  Useful for taking care of repeated errors first based on first instance.");
 
 options, args = parser.parse_args();
 
@@ -96,13 +108,15 @@ if options.reset:
    for filename in glob.glob("./" + options.output_file + '.*'):
       os.remove(filename);
 
-batches = glob.glob("./" + options.output_file + '.*.id.fasta');
+batches = glob.glob("./" + options.output_file + '.*.*.fasta');
 
 # Doesn't regenerate fasta or tsv batches if any one matching pattern exists.
 if len(batches) > 0:
    print ('Skipping batch file generation because batch files exist.');
 
 else:
+
+   # STEP 1: GENERATE BATCH FILES
    print ('Generating batch file(s) ...');
    metadata.sort_values(by = options.key_field);
 
@@ -113,7 +127,10 @@ else:
       data = [f for f in sorted(data, key=lambda x : x.id)];
 
       # Splits into batches of 1000 or less records:
-      data = np.array_split(data, len(data)/options.batch);
+      splits = len(data)/options.batch;
+      if splits < 1:
+         splits = 1;
+      data = np.array_split(data, splits);
 
       for count, sequences in enumerate(data):
          # Determine metadata rows pertinent to all sequences. They should be in same order
@@ -131,10 +148,11 @@ else:
          with open(options.output_file + '.'+ str(count) + '.id.fasta', 'w') as output_handle:
             SeqIO.write(sequences, output_handle, "fasta");
 
-   # Refresh batches file name list
-   batches = glob.glob("./" + options.output_file + '.*.id.fasta');
 
-""" Currently only virusseq () API is an option.
+""" 
+STEP 2: SUBMIT TO API
+
+Currently only virusseq () API is an option.
 API Information: https://github.com/cancogen-virus-seq/docs/wiki/How-to-Submit-Data-(API)
 
 Log in here to get API Key, good for 24 hours:
@@ -145,20 +163,28 @@ trigger validation error "UNAUTHORIZED_FOR_STUDY_UPLOAD".
 """
 
 if options.api:
-   print ('Performing batch upload ...');
+
    if not options.api_token:
       sys.exit("An API user token is required for use with the [" + options.api + "] API.");
+
+   # Retrieve batch files that need uploading
+   batches = glob.glob("./" + options.output_file + '.*.id.fasta');
+
+   if len(batches) > 0:
+      print ('Performing batch upload ...');
 
    ################################### VirusSeq API ##########################
    # See: https://github.com/cancogen-virus-seq/docs/wiki/How-to-Submit-Data-(API)
    if options.api == 'VirusSeq_Portal':
-      # url = "https://muse.virusseq-dataportal.ca/submissions";  # LIVE ENVIRONMENT
-      url = "https://muse.dev.cancogen.cancercollaboratory.org/submissions";  # TEST ENVIRONMENT
+      if options.development:  # TEST API ENDPOINT
+         url = "https://muse.dev.cancogen.cancercollaboratory.org/";
+      else:  # LIVE API ENDPOINT
+         url = "https://muse.virusseq-dataportal.ca/";  
 
       custom_header = {'Authorization': 'Bearer ' + options.api_token}
 
       # TESTING: create an empty or junky .fasta and accompanying .tsv file
-      batches = ['test.0.id.fasta'];
+      # batches = ['test.0.id.fasta'];
 
       for filename in batches:
          filename_tsv = filename.replace('.id.fasta','.id.tsv');
@@ -166,24 +192,26 @@ if options.api:
             ('files', open(filename, 'rb')), 
             ('files', open(filename_tsv, 'rb'))
          ];
-         print('Processing batch: ' + filename);
+         print('Uploading batch: ' + filename);
          try:
-            request = requests.post(url, files = upload_files, headers = custom_header);
+            request = requests.post(url + 'submissions', files = upload_files, headers = custom_header);
          except Exception as err:
             sys.exit("API Server problem (check API URL?): " + repr(err));
 
-         if request.status_code == 400:
+         if request.status_code == 200:
             result = request.json();
             if ('submissionId' in result):
-               submission_id = request['submissionId'];
-               print('Batch was submitted! submissionId=' + submission_id);
+               submission_id = result['submissionId'];
+               print('Batch was submitted! submissionId: ' + submission_id);
 
-               os.rename(filename, filename + '.' + submission_id)
-               os.rename(filename_tsv, filename_tsv + '.' + submission_id)
+               os.rename(filename, filename.replace('.id.','.'+submission_id+'.'));
+               os.rename(filename_tsv, filename_tsv.replace('.id.','.'+submission_id+'.'));
+
                continue;    
             else:
                print(result);
                sys.exit("Resolve reported error, then rerun command!");
+            
 
          # "Unauthorized client error status response" code occurs when key is not valid.
          # This halts processing of all remaining batches.
@@ -241,3 +269,64 @@ if options.api:
 
          print('Error: Unable to complete batch because of status code ' + str(request.status_code) + '\n' + request.text);
          continue;
+
+
+# STEP 3: Report on progress of each batch job that has been submitted.
+
+   # Get list of batch files to get status for
+   batches = glob.glob('./' + options.output_file + '.*.*.fasta');
+
+   for filename in batches:
+      
+      submission_id = filename.split('.')[-2];
+
+      if not submission_id == 'id':
+         print ();
+         print ('STATUS for: ' + filename);
+         if options.short:
+            error_max = options.short;
+         else:
+            error_max = options.batch;
+
+         if (options.api == 'VirusSeq_Portal'):
+
+            query = '?page=0&size=' + str(error_max) + '&sortDirection=ASC&sortField=submitterSampleId&submissionId=' + submission_id;
+
+            if options.development:  # TEST API ENDPOINT
+               url = "https://muse.dev.cancogen.cancercollaboratory.org/";
+            else:  # LIVE API ENDPOINT
+               url = "https://muse.virusseq-dataportal.ca/";  
+
+            feedback = requests.get(url + 'uploads' + query, headers = custom_header);
+            if feedback.status_code == 200:
+               response = feedback.json();
+
+               for submission in response['data']:
+                   # print(submission);
+                  if (submission['status'] == 'QUEUED'):
+                     print (submission['submitterSampleId'], "Queued");
+
+                  if (submission['status'] == 'ERROR'):
+                     error_list = submission['error'].split('#')[1:];
+
+                     old_item_label = '';
+
+                     item_report = submission['submitterSampleId'];
+                     for ptr, item in enumerate(error_list):
+                        # Just show field name, not section
+                        binding = item.split(':',1);
+                        item_label = binding[0].split('/')[-1];
+                        item_error = binding[1];
+                        if (item_label == old_item_label):
+                           item_report += item_error;
+                        else:
+                           item_report += '\n\t' + item_label + item_error;
+
+                        old_item_label = item_label;
+
+                     print (item_report);
+
+            else:
+               print ('Status unavailable');
+
+            print();

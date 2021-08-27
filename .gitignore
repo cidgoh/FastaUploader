@@ -130,3 +130,4 @@ dmypy.json
 *.fasta
 *.csv
 batch_test/README.md
+batch_test/test.tsv
