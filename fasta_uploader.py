@@ -34,7 +34,7 @@ Requires Biopython and Requests modules
 - "pip install requests"
 
 Usage:
-python fasta_uploader.py -c "20210713_AB_final set 1.csv" -f "consensus_renamed_final.fasta" -k "specimen collector sample ID"
+python fasta_uploader.py -c "20210713_AB_final set 1.csv" -f "consensus_renamed_final.fasta" -k "fasta header name"
 
 FUTURE: Add feature to remerge all split fasta files and tsv files to enable
 them to be error corrected in batch files directly, rather than correcting
