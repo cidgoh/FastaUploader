@@ -11,7 +11,7 @@ Authors: Damion Dooley, Nithu Sara John
 
 Given a fasta file and a sample metadata file with a column that matches to fasta file record identifiers, break both into respective sets of smaller batches of records which are submitted to an API for processing.
 
-Processing is two step: 
+Processing is three step: 
 
 1) Construct batches of files. Since only two files are read and parsed in one go,
 processing of them is reliable after that point, so no further error reporting
@@ -20,7 +20,9 @@ is needed during the batch file generation process.
 
 1) IF API option is included, submit each batch to API, wait for it to finish
 or error out (capture error report) and proceed to next batch. 
-   1) Some types of error trigger sudden death, i.e. sys.exit() because they would apply to any subsequent API batch calls.  For example missing tabular data column names will trigger an exit. Once resolved, rerun with -f to force regeneration of output files.
+   1) Some types of error trigger sudden death, i.e. sys.exit() because they would also occur in subsequent API batch calls.  For example missing tabular data column names will trigger an exit. Once resolved, rerun with -f to force regeneration of output files.
+
+1) Report on processing status of existing API requests.  Some may be queued, others may have been processed successfully, and others may have line-by-line errors in field content that must be addressed.  Revise given batch files and run again.
 
 Requires Biopython and Requests modules
 
