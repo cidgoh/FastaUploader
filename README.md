@@ -61,6 +61,6 @@ Run the command in a folder with the appropriate input files, and output files c
    
 For example:
 
-python fasta_uploader.py -f "consensus_final.fasta" -c "final set 1.csv" -k "specimen collector sample ID" -u [enter API key here] -s 2
+python fasta_uploader.py -f "consensus_final.fasta" -c "final set 1.csv" -k "fasta header name" -u [enter API key here] -s 2
 
 
