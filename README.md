@@ -54,9 +54,13 @@ Run the command in a folder with the appropriate input files, and output files c
       an API user token is required for API access.
     -r, --reset
       Regenerate all batch files and begin API resubmission process even if batch files already exist under given output file pattern.
-                        
+    -d, --dev
+      Test against a development server rather than live one.  Provide an API endpoint URL.
+     -s, --short
+      Report up to given # of fasta record related errors for each batch submission.  Useful for taking care of repeated errors first based on first instance.
+   
 For example:
 
-python fasta_uploader.py -c "final set 1.csv" -f "consensus_final.fasta" -k "specimen collector sample ID" -u [enter API key here]
+python fasta_uploader.py -f "consensus_final.fasta" -c "final set 1.csv" -k "specimen collector sample ID" -u [enter API key here] -s 2
 
 
