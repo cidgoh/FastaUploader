@@ -50,16 +50,19 @@ Run the command in a folder with the appropriate input files, and output files c
       provide an output file name/path.
     -k KEY_FIELD, --key=KEY_FIELD
       provide the metadata field name to match to fasta record identifier.
+      
+Parameters involved in optional API call:
+      
     -a API, --api=API     
       provide the target API to send data too.  A batch submission job will be initiated for it. Default is "VirusSeq_Portal".
     -u API_TOKEN, --user=API_TOKEN
       an API user token is required for API access.
-    -r, --reset
-      Regenerate all batch files and begin API resubmission process even if batch files already exist under given output file pattern.
     -d, --dev
       Test against a development server rather than live one.  Provide an API endpoint URL.
      -s, --short
       Report up to given # of fasta record related errors for each batch submission.  Useful for taking care of repeated errors first based on first instance.
+     -r, --reset
+      Regenerate all batch files and begin API resubmission process even if batch files already exist under given output file pattern.
    
 For example:
 
