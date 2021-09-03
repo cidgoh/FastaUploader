@@ -108,18 +108,18 @@ def log(log_handler, text):
 def get_metadata(log_handler, metadata_file, options):
 
    if not options.fasta_file:
-      sys.exit(log(log_handler, "A sample sequencing fasta file is required."));
+      log(log_handler, "A sample sequencing fasta file is required.");
+      sys.exit();
 
-   if metadata_file[-4:] == '.csv':
+   if metadata_file[-4:].lower() == '.csv':
       metadata = pd.read_csv(metadata_file, encoding = 'unicode_escape');
-      file_suffix = 'csv';
 
-   elif metadata_file[-4:] == '.tsv':
+   elif metadata_file[-4:].lower() == '.tsv':
       metadata = pd.read_table(metadata_file, delimiter='\t', encoding = 'unicode_escape');
-      file_suffix = 'tsv';
 
    else:
-      sys.exit(log(log_handler, "A sample contextual .tsv or .csv file is required."));
+      log(log_handler, "A sample contextual .tsv or .csv file is required.")
+      sys.exit(1);
 
    # Check if given fasta record identifier is a sample metadata file column
    if not options.key_field in metadata.columns:
@@ -159,6 +159,19 @@ def get_fasta_data(log_handler, fasta_file, options):
 #
 def batch_fasta(log_handler, fasta_data, metadata, options):
    
+   # Resort fasta and metadata so they have same order as split files.
+   with open(options.fasta_file, 'w') as source_handle:
+      log(log_handler, 'Sorting and resaving source fasta and tabular files');
+      SeqIO.write(fasta_data, source_handle, "fasta");
+
+      if options.metadata_file[-4:] == '.csv':
+         separator = ',';
+      else:
+         separator = "\t";
+      
+      metadata.to_csv(options.metadata_file, sep=separator, index=False);
+
+
    # Splits into batches of options.batch (default 1000) or less records:
    splits = len(fasta_data)/int(options.batch);
    if splits < 1:
@@ -175,8 +188,9 @@ def batch_fasta(log_handler, fasta_data, metadata, options):
 
 # write_metadata
 #
+# see https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.to_csv.html
+#
 # @param Object log_handler for saving progress and error text
-
 # @param Object fasta_data SeqIO object containing all fasta records
 # @param List metadata list containing all fasta contextual data records
 # @param String count contains batch file 
@@ -188,13 +202,23 @@ def write_metadata(log_handler, fasta_data, metadata, count, options, id='queued
 
    metabatch = metadata.loc[metadata[options.key_field].isin(id_index)];
 
-   #log(log_handler, 'Files for ' + options.output_file + '.'+ str(count))
-   # https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.to_csv.html
-   if options.metadata_file[-4:] == '.csv':
-      metabatch.to_csv(options.output_file + '.'+ str(count) + '.'+id+'.csv', index=False); 
+   # FOR NOW, ONLY .TSV OUTPUT for VirusSeq.
+   #suffix = options.metadata_file[-4:];
+   suffix = '.tsv';
+
+   file_name = options.output_file + '.'+ str(count) + '.' + id + suffix;
+   log(log_handler, 'Saving ' + file_name);
+
+   if suffix == '.csv':
+      separator = ',';
    else:
-      # Any issue of quoted strings?
-      metabatch.to_csv(options.output_file + '.'+ str(count) + '.'+id+'.tsv', sep="\t", index=False);
+      separator = "\t";
+   
+   # Queued file might get several related batch number job status fail items added
+   if os.path.exists(file_name) and id == 'queued':
+      metabatch.to_csv(file_name, sep=separator, index=False, mode = 'a', header = False);
+   else:
+      metabatch.to_csv(file_name, sep=separator, index=False);
 
 
 # api_batch_job()
@@ -202,14 +226,13 @@ def write_metadata(log_handler, fasta_data, metadata, count, options, id='queued
 # at a time for all files in current working directory.
 #
 # @param Object log_handler for saving progress and error text
-# @param Object fasta_data SeqIO object containing all fasta records
-# @param List metadata list containing all fasta contextual data records
 # @param Dict options command line parameters by name
 #
-def api_batch_job(log_handler, fasta_data, metadata, options):
+def api_batch_job(log_handler, options):
 
    if not options.api_token:
-      sys.exit(log(log_handler, "An API user token is required for use with the [" + options.api + "] API."));
+      log(log_handler, "An API user token is required for use with the [" + options.api + "] API.");
+      sys.exit(1);
 
    # Retrieve batch files that need uploading, indicated by ".queued." in filename.
    batches = glob.glob("./" + options.output_file + '.*.queued.fasta');
@@ -233,7 +256,7 @@ def api_batch_job(log_handler, fasta_data, metadata, options):
 #   Log in here to get API Key, good for 24 hours:
 #   https://portal.dev.cancogen.cancercollaboratory.org/login
 #
-#   NOTE: Study_id field if not set to account project like "UHTC-ON" will
+#   NOTE: Study_id field if not set to account project like UHTC-ON or DRGN-CA will
 #   trigger validation error "UNAUTHORIZED_FOR_STUDY_UPLOAD".
 #
 
@@ -264,7 +287,8 @@ def api_virusseq_job(log_handler, options, batches):
                try:
                   request = requests.post(API_URL + 'submissions', files = upload_files, headers = {'Authorization': 'Bearer ' + options.api_token});
                except Exception as err:
-                  sys.exit(log(log_handler, "API Server problem (check API URL?): " + repr(err) ));
+                  log(log_handler, "API Server problem (check API URL?): " + repr(err) );
+                  sys.exit(1);
 
          if request.status_code == 200:
             result = request.json();
@@ -278,22 +302,26 @@ def api_virusseq_job(log_handler, options, batches):
                continue;
             else:
                log(log_handler, result);
-               sys.exit(log(log_handler, "Resolve reported error, then rerun command!"));
+               log(log_handler, "Resolve reported error, then rerun command!");
+               sys.exit(1);
 
          # "Unauthorized client error status response" code occurs when key is not valid.
          # This halts processing of all remaining batches.
          if request.status_code == 401:
             log(log_handler, "Unauthorized client error status 401 response");
-            sys.exit(log(log_handler, "Check to make sure your API key is current."));
+            log(log_handler, "Check to make sure your API key is current.");
+            sys.exit(1);
 
          if request.status_code == 404:
-            sys.exit(log(log_handler, "API service endpoint not recognized. Check API URL:" + API_URL))
+            log(log_handler, "API service endpoint not recognized. Check API URL:" + API_URL)
+            sys.exit(1);
          
          request_error = request.json();
          status = request_error['status'];
          message = request_error['message'];
 
-         log(log_handler, request_error);
+         log(log_handler, status + ' (' + str(request.status_code) + ') ' + message);
+
          errorInfo = request_error['errorInfo'];
 
          # "Bad Request" response status indicates something wrong with the input files.
@@ -305,9 +333,10 @@ def api_virusseq_job(log_handler, options, batches):
 
                if message == 'Headers are incorrect!':
                   log(log_handler, message);
-                  log(log_handler, "Unknown Headers:", errorInfo['unknownHeaders']);
-                  log(log_handler, "Missing Headers:", errorInfo['missingHeaders']);
-                  sys.exit(log(log_handler, "Check to make sure the .tsv file headers are current."));
+                  log(log_handler, "Unknown Headers: " + str(errorInfo['unknownHeaders']));
+                  log(log_handler, "Missing Headers: " + str(errorInfo['missingHeaders']));
+                  log(log_handler, "Check to make sure the .tsv file headers are current.");
+                  sys.exit(1);
 
                """
                Example error:
@@ -315,16 +344,16 @@ def api_virusseq_job(log_handler, options, batches):
                """
                if message == 'Found records with invalid fields':
                   for record in errorInfo['invalidFields']:
-                     log(log_handler, "row " + str(record['index']), '"' + record['fieldName'] + '"', 
-                        record['reason'],
-                        "value:",   record['value']
-                     );
+                     log(log_handler, "row " + str(record['index']) + ' "' + record['fieldName'] + '" ' + 
+                        record['reason'] +
+                        " value: " + record['value']);
                   continue;
 
             # not sure where this should be positioned.
             # {"status":"FORBIDDEN","message":"Denied","errorInfo":{}}
             if (status == "FORBIDDEN"):
-               sys.exit(log(log_handler, "Your account associated with the API key has not been authorized, so this service is not available to you yet."));
+               log(log_handler, "Your account associated with the API key has not been authorized, so this service is not available to you yet.")
+               sys.exit(1);
 
          # Internal Server Error (code generated etc.)
          if request.status_code == 500:
@@ -338,11 +367,10 @@ def api_virusseq_job(log_handler, options, batches):
          continue;
 
 
-def api_batch_status(log_handler, fasta_data, metadata, options):
+def api_batch_status(log_handler, options):
    
    # Get list of batch files to get status for
    batches = glob.glob('./' + options.output_file + '.*.*.fasta');
-   #batches = batches.sort(key=os.path.getmtime);
    batches = sorted(batches, key=lambda n: int(n.split('.',3)[2]) ); # sort on count of file
    for filename in batches:
       
@@ -357,76 +385,99 @@ def api_batch_status(log_handler, fasta_data, metadata, options):
 
          if not submission_id == 'queued':
             log(log_handler, '\nSTATUS for: ' + filename);
-            if options.short:
-               error_max = options.short;
-            else:
-               error_max = options.batch;
+
+            #
+            #if options.short:
+            #   error_max = options.short;
+            #else:
+            #   error_max = options.batch;
+
 
             if (options.api == 'VirusSeq_Portal'):
+               api_virusseq_status(log_handler, submission_id, error_keys, options)
 
-               query = '?page=0&size=' + str(error_max) + '&sortDirection=ASC&sortField=submitterSampleId&submissionId=' + submission_id;
-
-               if options.development:  # TEST API ENDPOINT
-                  API_URL = "https://muse.dev.cancogen.cancercollaboratory.org/";
-               else:  # LIVE API ENDPOINT
-                  API_URL = "https://muse.virusseq-dataportal.ca/";  
-
-               feedback = requests.get(API_URL + 'uploads' + query, headers = {'Authorization': 'Bearer ' + options.api_token});
-
-               if feedback.status_code == 200:
-                  response = feedback.json();
-
-                  item_report = '';
-
-                  for submission in response['data']:
-
-                     # We wait for results of queued job item
-                     if (submission['status'] == 'QUEUED'):
-                        item_report += submission['submitterSampleId'] + " Queued" + '\n';
-
-                     # Any error item must be resubmitted
-                     if (submission['status'] == 'ERROR'):
-                        error_key = submission['submitterSampleId'];
-                        error_keys.append(error_key);
-
-                        for ptr, item in enumerate(submission['error'].split('#')[1:]):
-                           # For brevity, just show field name, not section
-                           binding = item.split(':',1);
-                           item_label = binding[0].split('/')[-1];
-                           item_error = binding[1];
-                           item_report += '\n' + error_key + '\t' + item_label + item_error;
-
-                  log(log_handler, item_report);
-
-               else:
-                  log(log_handler, 'Status unavailable');
-
-               log(log_handler, '\n');
-
-         # Write out appropriate fasta, metadata and file content for each error.
+         # Write out appropriate fasta and metadata for each error.
          # This causes only errors to be resubmitted - AFTER EDITING - on next run.
 
-         if len(error_keys):
-            # A FILTER ITERATOR
+         # ISSUE: first row
+         if len(error_keys) > 0:
+            print (error_keys)
+
+            fasta_data = get_fasta_data(log_handler, filename, options);
+            filename_tsv = filename.replace('.fasta', '.tsv');
+            metadata = get_metadata(log_handler, filename_tsv, options);
+
+            # A filter iterator converted to a list
             sequences = list(filter(lambda x: x.id in error_keys, fasta_data));
 
-            # np.array(fasta_data)[in error_keys]:
-            with open(options.output_file + '.'+ count + '.queued.fasta', 'w') as output_handle:
+            # Several batch id jobs can contribute to a single new .queued. file
+            # if their own entry statuses switch from 'queued' to error
+            output_fasta_file = options.output_file + '.'+ count + '.queued.fasta';
+            if os.path.exists(output_fasta_file):
+                append_write = 'a' # append if already exists
+            else:
+                append_write = 'w' # make a new file if not
+
+            with open(output_fasta_file, append_write) as output_handle:
 
                SeqIO.write(sequences, output_handle, "fasta");
-               # just getting header, no content ????
-               # sequences is EMPTY?
                write_metadata(log_handler, sequences, metadata, count, options);
             
-            # TRY: Update job files to only include successes
+            # Update job files to only include successes. Existing files are overwritten.
             sequences = list(filter(lambda x: not x.id in error_keys, fasta_data));
             with open(filename, 'w') as output_handle:
 
                SeqIO.write(sequences, output_handle, "fasta");
                write_metadata(log_handler, sequences, metadata, count, options, submission_id);
 
-# ISSUE: NEW TSV GENERATION NOT BASED ON SUBMITTED FILE BUT RATHER ORIGINAL .tsv file.
-# FIX by loading from [EDITED] submitted .tsv
+
+def api_virusseq_status(log_handler, submission_id, error_keys, options):
+
+   # VirusSeq "size" parameter clips off last record status unless set to batch
+   # size + 1.
+   query = '?page=0&size=' + str(int(options.batch)+1) + '&sortDirection=ASC&sortField=submitterSampleId&submissionId=' + submission_id;
+
+   if options.development:  # TEST API ENDPOINT
+      API_URL = "https://muse.dev.cancogen.cancercollaboratory.org/";
+   else:  # LIVE API ENDPOINT
+      API_URL = "https://muse.virusseq-dataportal.ca/";  
+
+   feedback = requests.get(API_URL + 'uploads' + query, headers = {'Authorization': 'Bearer ' + options.api_token});
+
+   if feedback.status_code == 200:
+      response = feedback.json();
+
+      item_report = '';
+
+      for submission in response['data']:
+
+         # We wait for results of queued job item
+         if (submission['status'] == 'QUEUED'):
+            item_report += submission['submitterSampleId'] + " Queued" + '\n';
+
+         # Any error item must be resubmitted
+         else:
+            if (submission['status'] == 'ERROR'):
+               error_key = submission['submitterSampleId'];
+               error_keys.append(error_key);
+
+               for ptr, item in enumerate(submission['error'].split('#')[1:]):
+                  # For brevity, just show field name, not section
+                  binding = item.split(':',1);
+                  item_label = binding[0].split('/')[-1];
+                  item_error = binding[1];
+                  item_report += '\n' + error_key + '\t' + item_label + item_error;
+
+            else:
+               item_report += submission['submitterSampleId'] + ' ' + submission['status'] + '\n';
+
+      log(log_handler, item_report);
+
+   else:
+      log(log_handler, 'Status unavailable');
+
+   log(log_handler, '\n');
+
 
 ################################## The Program ##########################
 
@@ -458,10 +509,10 @@ with open(options.output_file + '_' + simple_date + '.log', 'w') as log_handler:
       log(log_handler, 'Generating batch file(s) ...' );
       batch_fasta(log_handler, fasta_data, metadata, options);
 
-   # STEP 2: SUBMIT TO API
+   # STEP 2: SUBMIT the *.queued.* files TO API
    if options.api:
-      api_batch_job(log_handler, fasta_data, metadata, options);
+      api_batch_job(log_handler, options);
 
    # STEP 3: Report on progress of each batch job that has been submitted.
-      api_batch_status(log_handler, fasta_data, metadata, options);
+      api_batch_status(log_handler, options);
 
