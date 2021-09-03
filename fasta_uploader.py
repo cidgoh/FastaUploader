@@ -62,10 +62,8 @@ def init_parser():
 
    parser.add_option('-f', '--fasta', dest="fasta_file",
       help="Provide a fasta file name.");
-   parser.add_option('-c', '--csv', dest="csv_file", 
-      help="Provide a COMMA delimited sample contextual data file name.");
-   parser.add_option('-t', '--tsv', dest="tsv_file", 
-      help="Provide a TAB delimited sample contextual data file name.");
+   parser.add_option('-m', '--metadata', dest="metadata_file", 
+      help="Provide a COMMA .csv or TAB .tsv delimited sample contextual data file name.");
    parser.add_option('-b', '--batch', dest="batch",
       help="Provide number of fasta records to include in each batch.", default=1000);
    parser.add_option('-o', '--output', dest="output_file",
@@ -73,7 +71,7 @@ def init_parser():
    parser.add_option('-k', '--key', dest="key_field",
       help="Provide the metadata field name to match to fasta record identifier.");
    parser.add_option('-n', '--number', dest="batch_number", default = False,
-      help="Just process given batch number to API instead of all batches.");
+      help="Process only given batch number to API instead of all batches.");
    # API related parameters
 
    parser.add_option('-a', '--api', dest="api",
@@ -107,17 +105,17 @@ def log(log_handler, text):
 # @param Dict options command line parameters by name
 # @return list sorted by options.key_field
 #
-def get_metadata(log_handler, options):
+def get_metadata(log_handler, metadata_file, options):
 
    if not options.fasta_file:
       sys.exit(log(log_handler, "A sample sequencing fasta file is required."));
 
-   if options.csv_file:
-      metadata = pd.read_csv(options.csv_file, encoding = 'unicode_escape');
+   if metadata_file[-4:] == '.csv':
+      metadata = pd.read_csv(metadata_file, encoding = 'unicode_escape');
       file_suffix = 'csv';
 
-   elif options.tsv_file:
-      metadata = pd.read_table(options.tsv_file, delimiter='\t', encoding = 'unicode_escape');
+   elif metadata_file[-4:] == '.tsv':
+      metadata = pd.read_table(metadata_file, delimiter='\t', encoding = 'unicode_escape');
       file_suffix = 'tsv';
 
    else:
@@ -140,9 +138,9 @@ def get_metadata(log_handler, options):
 # @param Object log_handler for saving progress and error text
 # @param Dict options command line parameters by name
 #
-def get_fasta_data(log_handler, options):
+def get_fasta_data(log_handler, fasta_file, options):
 
-   with open(options.fasta_file, "r") as fasta_handle:
+   with open(fasta_file, "r") as fasta_handle:
       fasta_data = SeqIO.parse(fasta_handle, "fasta");
       # Sort Fasta file so we organize upload, and can sync with metadata
       fasta_data = [f for f in sorted(fasta_data, key=lambda x : x.id)];
@@ -192,10 +190,10 @@ def write_metadata(log_handler, fasta_data, metadata, count, options, id='queued
 
    #log(log_handler, 'Files for ' + options.output_file + '.'+ str(count))
    # https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.to_csv.html
-   if options.csv_file:
+   if options.metadata_file[-4:] == '.csv':
       metabatch.to_csv(options.output_file + '.'+ str(count) + '.'+id+'.csv', index=False); 
    else:
-      # Or to tabular?  Issue of quoted strings?
+      # Any issue of quoted strings?
       metabatch.to_csv(options.output_file + '.'+ str(count) + '.'+id+'.tsv', sep="\t", index=False);
 
 
@@ -439,8 +437,8 @@ simple_date = datetime.now().isoformat().replace(':','').split('.')[0];
 with open(options.output_file + '_' + simple_date + '.log', 'w') as log_handler:
 
    # Caution: Big file data loaded into memory
-   fasta_data = get_fasta_data(log_handler, options);
-   metadata = get_metadata(log_handler, options);
+   fasta_data = get_fasta_data(log_handler, options.fasta_file, options);
+   metadata = get_metadata(log_handler, options.metadata_file, options);
 
    log(log_handler, "Log date: " + datetime.now().isoformat() );
 
