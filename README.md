@@ -37,26 +37,28 @@ Run the command in a folder with the appropriate input files, and output files c
 ### Options:
 
     -h, --help
-      show this help message and exit.
+      Show this help message and exit.
     -f FASTA_FILE, --fasta=FASTA_FILE
-      provide a fasta file name.
+      Provide a fasta file name.
     -c CSV_FILE, --csv=CSV_FILE
-      provide a COMMA delimited sample contextual data file name.
+      Provide a COMMA delimited sample contextual data file name.
     -t TSV_FILE, --tsv=TSV_FILE
-      provide a TAB delimited sample contextual data file name.
+      Provide a TAB delimited sample contextual data file name.
     -b BATCH, --batch=BATCH
-      provide number of fasta records to include in each batch. Default is 1000.
+      Provide number of fasta records to include in each batch. Default is 1000.
     -o OUTPUT_FILE, --output=OUTPUT_FILE
-      provide an output file name/path.
+      Provide an output file name/path.
     -k KEY_FIELD, --key=KEY_FIELD
-      provide the metadata field name to match to fasta record identifier.
+      Provide the metadata field name to match to fasta record identifier.
+    -n BATCH_NUMBER, --number=BATCH_NUMBER
+      Process only given batch number to API instead of all batches.
       
 Parameters involved in optional API call:
       
     -a API, --api=API     
-      provide the target API to send data too.  A batch submission job will be initiated for it. Default is "VirusSeq_Portal".
+      Provide the target API to send data too.  A batch submission job will be initiated for it. Default is "VirusSeq_Portal".
     -u API_TOKEN, --user=API_TOKEN
-      an API user token is required for API access.
+      An API user token is required for API access.
     -d, --dev
       Test against a development server rather than live one.  Provide an API endpoint URL.
      -s, --short
