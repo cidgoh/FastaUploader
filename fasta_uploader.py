@@ -61,31 +61,31 @@ def init_parser():
    parser = optparse.OptionParser();
 
    parser.add_option('-f', '--fasta', dest="fasta_file",
-      help="provide a fasta file name");
+      help="Provide a fasta file name.");
    parser.add_option('-c', '--csv', dest="csv_file", 
-      help="provide a COMMA delimited sample contextual data file name");
+      help="Provide a COMMA delimited sample contextual data file name.");
    parser.add_option('-t', '--tsv', dest="tsv_file", 
-      help="provide a TAB delimited sample contextual data file name");
+      help="Provide a TAB delimited sample contextual data file name.");
    parser.add_option('-b', '--batch', dest="batch",
-      help="provide number of fasta records to include in each batch", default=1000);
+      help="Provide number of fasta records to include in each batch.", default=1000);
    parser.add_option('-o', '--output', dest="output_file",
-      help="provide an output file name/path", default='output');
+      help="Provide an output file name/path.", default='output');
    parser.add_option('-k', '--key', dest="key_field",
-      help="provide the metadata field name to match to fasta record identifier");
+      help="Provide the metadata field name to match to fasta record identifier.");
    parser.add_option('-n', '--number', dest="batch_number", default = False,
-      help="provide the metadata field name to match to fasta record identifier");
+      help="Just process given batch number to API instead of all batches.");
    # API related parameters
 
    parser.add_option('-a', '--api', dest="api",
       help="provide the target API to send data too.  A batch submission job will be initiated for it.");
    parser.add_option('-u', '--user', dest="api_token",
-      help="an API user token is required for API access.");
+      help="An API user token is required for API access.");
    parser.add_option('-d', '--dev', dest="development", action='store_true',
       help="Test against a development server rather than live one.  Provide an API endpoint URL");
    parser.add_option('-s', '--short', dest="short", default = False, action='store_false',
       help="Report up to given # of fasta record related errors for each batch submission.  Useful for taking care of repeated errors first based on first instance.");
    parser.add_option('-r', '--reset', dest="reset", action='store_true', 
-      help="regenerate all batch files and begin API resubmission process even if batch files already exist under given output file pattern.");
+      help="Regenerate all batch files and begin API resubmission process even if batch files already exist under given output file pattern.");
 
    return parser.parse_args();
 
