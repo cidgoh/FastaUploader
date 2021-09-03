@@ -40,10 +40,8 @@ Run the command in a folder with the appropriate input files, and output files c
       Show this help message and exit.
     -f FASTA_FILE, --fasta=FASTA_FILE
       Provide a fasta file name.
-    -c CSV_FILE, --csv=CSV_FILE
-      Provide a COMMA delimited sample contextual data file name.
-    -t TSV_FILE, --tsv=TSV_FILE
-      Provide a TAB delimited sample contextual data file name.
+    -m METADATA_FILE, --metadata=METADATA_FILE
+      Provide a COMMA .csv or TAB .tsv delimited sample contextual data file name.
     -b BATCH, --batch=BATCH
       Provide number of fasta records to include in each batch. Default is 1000.
     -o OUTPUT_FILE, --output=OUTPUT_FILE
@@ -68,6 +66,6 @@ Parameters involved in optional API call:
    
 For example:
 
-python fasta_uploader.py -f "consensus_final.fasta" -c "final set 1.csv" -k "fasta header name" -u [enter API key here] -s 2
+python fasta_uploader.py -f "consensus_final.fasta" -m "final set 1.csv" -k "fasta header name" -u ENTER_API_KEY_HERE
 
 
