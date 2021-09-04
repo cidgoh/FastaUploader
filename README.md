@@ -67,6 +67,6 @@ Parameters involved in optional API call:
    
 For example:
 
-python fasta_uploader.py -f "consensus_final.fasta" -m "final set 1.csv" -k "fasta header name" -u ENTER_API_KEY_HERE
+python fasta_uploader.py -f "consensus_final.fasta" -m "final set 1.csv" -k "fasta header name" -a VirusSeq_Portal -u ENTER_API_KEY_HERE
 
 
