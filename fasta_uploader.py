@@ -246,7 +246,7 @@ def api_batch_job(log_handler, options):
          api_virusseq_job(log_handler, options, batches);
 
    else:
-      log(log_handler, 'Skipping API batch file queue because it is empty.');
+      log(log_handler, 'API batch file queue is empty.');
 
 
 ################################## VirusSeq API ##########################
