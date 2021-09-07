@@ -67,6 +67,10 @@ Parameters involved in optional API call:
    
 For example:
 
-python fasta_uploader.py -f "consensus_final.fasta" -m "final set 1.csv" -k "fasta header name" -a VirusSeq_Portal -u ENTER_API_KEY_HERE
+    python fasta_uploader.py -f "consensus_final.fasta" -m "final set 1.csv" -k "fasta header name" -a VirusSeq_Portal -u ENTER_API_KEY_HERE
 
+This will convert consensus_final.fasta and related final set 1.csv contextual data records into batches of 1000 records by default, and will begin submitting each batch to the VirusSeq portal.
 
+    python fasta_uploader.py -f "consensus_final.fasta" -m "final set 1.csv" -k "fasta header name" -a VirusSeq_Portal -u ENTER_API_KEY_HERE -n 0
+
+Like the above but only first batch is submitted so that one can see any errors, and if they apply to all batches, can fix them in original "final set 1.csv" file. Once batch 0 is fixed, all its records can be removed from the consensus_final.fasta and final set 1.csv.csv files, and the whole job can be resubmitted.
