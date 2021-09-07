@@ -20,10 +20,10 @@ is needed during the batch file generation process.
 
 1) IF API option is included, submit each *.queued.fasta batch to API, wait for it to finish
 or error out (capture error report) and proceed to next batch. 
-   1) There is an option to just try submitting one of the batches, e.g. the first one, via "-n 0" parameter.  This allows error debugging of just the first batch.  Once error patterns are determined, those that apply to remaining source contextual data can be applied, and first batch removed from that file, and the whole batching can be redone using -r reset.
-   1) Some types of error trigger sudden death, i.e. sys.exit() because they would also occur in subsequent API batch calls.  For example missing tabular data column names will trigger an exit. Once resolved, rerun with -f to force regeneration of output files.
+   1) Some types of error trigger sudden death, i.e. sys.exit() because they would also occur in subsequent API batch calls.  For example missing tabular data column names will trigger an exit. Once resolved, rerun with -r to force regeneration of output files.
+   1) There is an option to just try submitting one of the batches, e.g. the first one, via "-n 0" parameter.  This allows error debugging of just the first batch.  Once error patterns are determined, those that apply to remaining source contextual data can be applied, and first batch removed from source fasta and contextual data files, and the whole batching can be redone using -r reset, or by manually deleting the output files and rerunning.
 
-1) Report on processing status of existing API requests.  Some may be queued, others may have been processed successfully, and others may have line-by-line errors in field content that are turned into new [output file batch.#].queued.fasta and [output batch.#].queued.tsv files which can be edited and then submitted by rerunning the program.
+1) The processing status of existing API requests is reported from the API server end.  Some may be queued by the API server, others may have been processed successfully, and others may have line-by-line errors in field content that are converted by fasta_uploader.py into new [output file batch.#].queued.fasta and [output batch.#].queued.tsv files which can be edited and then submitted back to the API by rerunning the program with the same command line parameters.
 
 Requires Biopython and Requests modules
 
