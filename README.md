@@ -18,11 +18,12 @@ processing of them is reliable after that point, so no further error reporting
 is needed during the batch file generation process.
    1) Importantly, if rerunning fasta_batch_submit.py, this step will be skipped unless -f --force parameter is run.  Currently input files are still required in this case.
 
-1) IF API option is included, submit each batch to API, wait for it to finish
+1) IF API option is included, submit each *.queued.fasta batch to API, wait for it to finish
 or error out (capture error report) and proceed to next batch. 
-   1) Some types of error trigger sudden death, i.e. sys.exit() because they would also occur in subsequent API batch calls.  For example missing tabular data column names will trigger an exit. Once resolved, rerun with -f to force regeneration of output files.
+   1) Some types of error trigger sudden death, i.e. sys.exit() because they would also occur in subsequent API batch calls.  For example missing tabular data column names will trigger an exit. Once resolved, rerun with -r to force regeneration of output files.
+   1) There is an option to just try submitting one of the batches, e.g. the first one, via "-n 0" parameter.  This allows error debugging of just the first batch.  Once error patterns are determined, those that apply to remaining source contextual data can be applied, and first batch removed from source fasta and contextual data files, and the whole batching can be redone using -r reset, or by manually deleting the output files and rerunning.
 
-1) Report on processing status of existing API requests.  Some may be queued, others may have been processed successfully, and others may have line-by-line errors in field content that must be addressed.  Revise given batch files and run again.
+1) The processing status of existing API requests is reported from the API server end.  Some may be queued by the API server, others may have been processed successfully, and others may have line-by-line errors in field content that are converted by fasta_uploader.py into new [output file batch.#].queued.fasta and [output batch.#].queued.tsv files which can be edited and then submitted back to the API by rerunning the program with the same command line parameters.
 
 Requires Biopython and Requests modules
 
@@ -66,6 +67,10 @@ Parameters involved in optional API call:
    
 For example:
 
-python fasta_uploader.py -f "consensus_final.fasta" -m "final set 1.csv" -k "fasta header name" -u ENTER_API_KEY_HERE
+    python fasta_uploader.py -f "consensus_final.fasta" -m "final set 1.csv" -k "fasta header name" -a VirusSeq_Portal -u ENTER_API_KEY_HERE
 
+This will convert consensus_final.fasta and related final set 1.csv contextual data records into batches of 1000 records by default, and will begin submitting each batch to the VirusSeq portal.
 
+    python fasta_uploader.py -f "consensus_final.fasta" -m "final set 1.csv" -n 0 -k "fasta header name" -a VirusSeq_Portal -u ENTER_API_KEY_HERE
+
+Like the above but only first batch is submitted so that one can see any errors, and if they apply to all batches, can fix them in original "final set 1.csv" file. Once batch 0 is fixed, all its records can be removed from the consensus_final.fasta and final set 1.csv.csv files, and the whole job can be resubmitted.
