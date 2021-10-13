@@ -1,6 +1,6 @@
 """ fasta_uploader.py
 
-See latest at: https://github.com/Public-Health-Bioinformatics/FastaUploader/
+See latest at: https://github.com/cidgoh/FastaUploader/
 
 Given a fasta file and a sample metadata file with a column that matches to
 fasta file record identifiers, break both into respective sets of smaller
@@ -23,7 +23,10 @@ data column names will trigger an exit. Once resolved, rerun with -f to force
 regeneration of output files.
 
 3) Scan through all uploaded fasta batches and report back via the API any new
-information about errors they may contain.
+information about errors they may contain.  For each batch file produce a new
+.queued.fasta and .queued.tsv file containing records that have errors in them
+so that they can be corrected manually, and then resubmitted by running
+program again.
 
 Authors: Damion Dooley, Nithu Sara John
 Centre for Infectious Disease Epidemiology and One Health
@@ -34,11 +37,11 @@ Requires Biopython and Requests modules
 - "pip install requests"
 
 Usage:
-python fasta_uploader.py -c "20210713_AB_final set 1.csv" -f "consensus_renamed_final.fasta" -k "fasta header name" -d -a VirusSeq_Portal -u eyJhbGciOiJSUz....ykapL1A
+python fasta_uploader.py -m "samples_xyz.csv" -f "samples_xyz.fasta" -k "fasta header name" -d -a VirusSeq_Portal -u eyJhbGciOiJSUz....ykapL1A
 
 FUTURE: Add feature to remerge all split fasta files and tsv files to enable
-them to be error corrected in batch files directly, rather than correcting
-problems in original merged file and rerunning whole upload process?
+them so after error correction in batch files they can be merged into one
+corrected file?
 """
 
 from Bio import SeqIO
@@ -509,10 +512,13 @@ with open(options.output_file + '_' + simple_date + '.log', 'w') as log_handler:
       log(log_handler, 'Generating batch file(s) ...' );
       batch_fasta(log_handler, fasta_data, metadata, options);
 
-   # STEP 2: SUBMIT the *.queued.* files TO API
    if options.api:
+
+      # STEP 2: SUBMIT the *.queued.* files TO API
       api_batch_job(log_handler, options);
 
-   # STEP 3: Report on progress of each batch job that has been submitted.
+      # STEP 3: Report on progress of each batch job that has been submitted.
+      # Any previous error reports for a given batch job are prepared into a
+      # new .queued.fasta and .queued.tsv file for editing and resubmission.
       api_batch_status(log_handler, options);
 
