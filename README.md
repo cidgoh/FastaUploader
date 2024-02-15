@@ -3,13 +3,13 @@ A tool for batch processing large fasta files and accompanying metadata table to
 
 The python **fasta_uploader.py** script breaks large fasta files (e.g. 500mb) and related (one-to-one) tab-delimited sample contextual data into smaller batches of 1000 or some specified # of records which can then be uploaded to a given sequence repository if an API endpoint is selected.  Currently there is one option for the API interface: [VirusSeq](https://virusseq-dataportal.ca/). 
 
-This tool is developed by the SFU Centre for Infectious Disease Epidemiology and One Health in conjunction with VirusSeq and it works well with [DataHarmonizer](https://github.com/Public-Health-Bioinformatics/DataHarmonizer)!
+This tool is developed by the SFU Centre for Infectious Disease Epidemiology and One Health in conjunction with VirusSeq and it works well with [DataHarmonizer](https://github.com/cidgoh/DataHarmonizer)!
 
 Nithu has authored a [User Manual](https://docs.google.com/document/d/1VooAmv8bWHfW_uN01sMz_ToFGd5OyqVL/edit?usp=sharing&ouid=107617157266759467291&rtpof=true&sd=true) which helps convey Fasta Uploader's typical usage.
 
 Authors: Damion Dooley, Nithu Sara John
 
-## Details 
+## Details
 
 Given a fasta file and a sample metadata file with a column that matches to fasta file record identifiers, break both into respective sets of smaller batches of records which are submitted to an API for processing.
 
